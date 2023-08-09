@@ -70,7 +70,7 @@ class ChatServidorCliente:
 
 if __name__ == "__main__":
     if len(sys.argv) != 5:
-        print("Uso: python nome_do_arquivo.py host porta")
+        print("Uso: python nome_do_arquivo.py servidorHost servidorPorta clienteHost clientePorta")
         sys.exit(1)
    
     servidorHost, servidorPorta, clienteHost, clientePorta = sys.argv[1],int(sys.argv[2]),sys.argv[3],int(sys.argv[4])
