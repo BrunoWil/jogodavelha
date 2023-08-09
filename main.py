@@ -13,12 +13,16 @@ class MeuAplicativo(tk.Tk):
         self.geometry("220x280")
 
         # # Criar widgets
+
+        self.frameInicial = tk.Frame(self, borderwidth=2, relief="groove")
+        self.frameInicial.grid(row=0,column=0,padx=10, pady=10)
+
         self.criar_widgets()
         self.frame_caixa_inicial()
         self.grid_caixa_inicial()
-        
         # Lista para armazenar os textos digitados nas caixas de texto
         self.texto = []
+        
 
     def criar_widgets(self):
         # Criação de listas para armazenar os widgets criados dinamicamente
@@ -35,17 +39,17 @@ class MeuAplicativo(tk.Tk):
         # Criação de rótulos, caixas de texto e botão
 
     def frame_caixa_inicial(self):
-        self.labels.append(tk.Label(self, text=self.mensagens[0]))# Caixa de texto Host
-        self.labels.append(tk.Label(self, text=self.mensagens[1]))# Caixa de texto Porta
-        self.labels.append(tk.Label(self, text=self.hostLocal))# Caixa de texto Host
-        self.labels.append(tk.Label(self, image = self.frames[0]))# Caixa de texto para digitar a mensagem Host
-        self.labels.append(tk.Label(self, text=self.mensagens[2]))# Caixa de texto Conectando
-        self.labels.append(tk.Label(self, text=self.portaLocal))# Caixa de texto Conectando
+        self.labels.append(tk.Label(self.frameInicial, text=self.mensagens[0]))# Caixa de texto Host
+        self.labels.append(tk.Label(self.frameInicial, text=self.mensagens[1]))# Caixa de texto Porta
+        self.labels.append(tk.Label(self.frameInicial, text=self.hostLocal))# Caixa de texto Host
+        self.labels.append(tk.Label(self.frameInicial, image = self.frames[0]))# Caixa de texto para digitar a mensagem Host
+        self.labels.append(tk.Label(self.frameInicial, text=self.mensagens[2]))# Caixa de texto Conectando
+        self.labels.append(tk.Label(self.frameInicial, text=self.portaLocal))# Caixa de texto Conectando
 
-        self.entries.append(tk.Entry(self))  # Caixa de texto para digitar a mensagem Host
-        self.entries.append(tk.Entry(self))  # Caixa de texto para digitar a mensagem Porta
-        self.buttons.append(tk.Button(self, text="Conectar", command=self.exibir_caixa_mensagem_inicial))
-        self.buttons.append(tk.Button(self, text="Cancelar", command=self.botao_cancelar_inicial))
+        self.entries.append(tk.Entry(self.frameInicial))  # Caixa de texto para digitar a mensagem Host
+        self.entries.append(tk.Entry(self.frameInicial))  # Caixa de texto para digitar a mensagem Porta
+        self.buttons.append(tk.Button(self.frameInicial, text="Conectar", command=self.exibir_caixa_mensagem_inicial))
+        self.buttons.append(tk.Button(self.frameInicial, text="Cancelar", command=self.botao_cancelar_inicial))
 
 
         # Posicionamento dos widgets usando grid
@@ -72,6 +76,7 @@ class MeuAplicativo(tk.Tk):
         self.labels[4].grid_remove()
         self.parada_thread = True
         self.thread_animacao.join()
+
 
     def descobri_local_ip(self):
         try:
@@ -112,9 +117,6 @@ class MeuAplicativo(tk.Tk):
         else:
             self.host_porta[0] = [self.entries[0].get(),self.entries[1].get()]
 
-
-        
-
         # Verificar se há mensagem digitada
         if self.host_porta[0][0] and self.host_porta[0][1]:
             self.buttons[1].config(state='normal')#Habilitar o botão Cancelar
@@ -146,6 +148,7 @@ class MeuAplicativo(tk.Tk):
         return porta_disponivel
 
 if __name__ == "__main__":
+    
     app = MeuAplicativo()
     app.mainloop()
 
