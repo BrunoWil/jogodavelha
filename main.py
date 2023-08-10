@@ -12,126 +12,128 @@ class MeuAplicativo(tk.Tk):
         # Definir o tamanho da tela (largura x altura)
         self.geometry("220x280")
 
-        # # Criar widgets
+        # Criar widgets
 
+        # Criar um frame para os widgets iniciais
         self.frameInicial = tk.Frame(self, borderwidth=2, relief="groove")
-        self.frameInicial.grid(row=0,column=0,padx=10, pady=10)
+        self.frameInicial.grid(row=0, column=0, padx=10, pady=10)
 
+        # Chamar os métodos para criar e posicionar os widgets
         self.criar_widgets()
-        self.frame_caixa_inicial()
         self.grid_caixa_inicial()
+
         # Lista para armazenar os textos digitados nas caixas de texto
         self.texto = []
         
+        # Dicionário para armazenar valores de host e porta
+        self.host_porta = {"Porta", "Host"}
 
     def criar_widgets(self):
-        # Criação de listas para armazenar os widgets criados dinamicamente
-        self.mensagens = ["Host:", "Porta:","Conectando"]
+        # Definir mensagens padrão
+        self.mensagens = {
+            "Host": "Host:",
+            "Porta": "Porta:",
+            "Conectando": "Conectando"
+        }
+
+        # Obter informações de host local e porta local
         self.hostLocal = f"Host Local: {self.descobri_local_ip()}"
         self.portaLocal = f"Porta Local: {self.encontrar_portas_disponiveis(1058, 47808)}"
-        self.host_porta = []
-        self.labels = []
-        self.entries = []
-        self.buttons = []
-        self.frameCnt = 12
-        self.frames = [tk.PhotoImage(file='carregando.gif', format='gif -index %i' % i).subsample(50,50) for i in range(self.frameCnt)]    
 
-        # Criação de rótulos, caixas de texto e botão
+        # Criar dicionário para armazenar widgets
+        self.widgets = {
+            "labels": {},
+            "entries": {},
+            "buttons": {}
+        }
+
+        # Carregar frames para animação
+        self.frameCnt = 12
+        self.frames = [tk.PhotoImage(file='carregando.gif', format='gif -index %i' % i).subsample(50, 50) for i in range(self.frameCnt)]
+
+        # Criar rótulos, caixas de texto e botão
+        self.frame_caixa_inicial()
 
     def frame_caixa_inicial(self):
-        self.labels.append(tk.Label(self.frameInicial, text=self.mensagens[0]))# Caixa de texto Host
-        self.labels.append(tk.Label(self.frameInicial, text=self.mensagens[1]))# Caixa de texto Porta
-        self.labels.append(tk.Label(self.frameInicial, text=self.hostLocal))# Caixa de texto Host
-        self.labels.append(tk.Label(self.frameInicial, image = self.frames[0]))# Caixa de texto para digitar a mensagem Host
-        self.labels.append(tk.Label(self.frameInicial, text=self.mensagens[2]))# Caixa de texto Conectando
-        self.labels.append(tk.Label(self.frameInicial, text=self.portaLocal))# Caixa de texto Conectando
+        # Criar e posicionar widgets usando o método grid
+        self.widgets["labels"]["Host"] = tk.Label(self.frameInicial, text=self.mensagens["Host"])
+        self.widgets["labels"]["Porta"] = tk.Label(self.frameInicial, text=self.mensagens["Porta"])
+        self.widgets["labels"]["HostLocal"] = tk.Label(self.frameInicial, text=self.hostLocal)
+        self.widgets["labels"]["GIF"] = tk.Label(self.frameInicial, image=self.frames[0])
+        self.widgets["labels"]["Conectando"] = tk.Label(self.frameInicial, text=self.mensagens["Conectando"])
+        self.widgets["labels"]["PortaLocal"] = tk.Label(self.frameInicial, text=self.portaLocal)
 
-        self.entries.append(tk.Entry(self.frameInicial))  # Caixa de texto para digitar a mensagem Host
-        self.entries.append(tk.Entry(self.frameInicial))  # Caixa de texto para digitar a mensagem Porta
-        self.buttons.append(tk.Button(self.frameInicial, text="Conectar", command=self.exibir_caixa_mensagem_inicial))
-        self.buttons.append(tk.Button(self.frameInicial, text="Cancelar", command=self.botao_cancelar_inicial))
+        self.widgets["entries"]["Host"] = tk.Entry(self.frameInicial)
+        self.widgets["entries"]["Porta"] = tk.Entry(self.frameInicial)
+        self.widgets["buttons"]["Conectar"] = tk.Button(self.frameInicial, text="Conectar", command=self.exibir_caixa_mensagem_inicial)
+        self.widgets["buttons"]["Cancelar"] = tk.Button(self.frameInicial, text="Cancelar", command=self.botao_cancelar_inicial)
 
-
-        # Posicionamento dos widgets usando grid
     def grid_caixa_inicial(self):
-        self.labels[0].grid(row=2, column=0, padx=5, pady=5)# Caixa de texto Host
-        self.labels[1].grid(row=3, column=0, padx=5, pady=5)# Caixa de texto Porta
-
-        self.labels[2].grid(row=0, column=0, columnspan=3, padx=0, pady=5)# Caixa de texto meuHost
-        self.labels[5].grid(row=1, column=0, columnspan=3, padx=0, pady=5)# Caixa de texto minhaPorta
-
-        self.entries[0].grid(row=2, column=1, padx=5, pady=5,columnspan=2)# Caixa de texto para digitar a mensagem Host
-        self.entries[1].grid(row=3, column=1, padx=5, pady=5,columnspan=2)# Caixa de texto para digitar a mensagem Porta
-        self.buttons[0].grid(row=5, column=1, padx=5, pady=5)# Botão de conectar
-        self.buttons[1].grid(row=5, column=2, padx=5, pady=5)# Botão de Cancelar
-        self.buttons[1].config(state='disabled')# Botão de Cancelar
-
+        # Posicionar widgets usando o método grid
+        self.widgets["labels"]["Host"].grid(row=2, column=0, padx=5, pady=5)
+        self.widgets["labels"]["Porta"].grid(row=3, column=0, padx=5, pady=5)
+        self.widgets["labels"]["HostLocal"].grid(row=0, column=0, columnspan=3, padx=0, pady=5)
+        self.widgets["labels"]["PortaLocal"].grid(row=1, column=0, columnspan=3, padx=0, pady=5)
+        self.widgets["entries"]["Host"].grid(row=2, column=1, padx=5, pady=5, columnspan=2)
+        self.widgets["entries"]["Porta"].grid(row=3, column=1, padx=5, pady=5, columnspan=2)
+        self.widgets["buttons"]["Conectar"].grid(row=5, column=1, padx=5, pady=5)
+        self.widgets["buttons"]["Cancelar"].grid(row=5, column=2, padx=5, pady=5)
+        self.widgets["buttons"]["Cancelar"].config(state='disabled')
 
     def botao_cancelar_inicial(self):
-        self.entries[0].config(state='normal')
-        self.entries[1].config(state='normal')
-        self.buttons[0].config(state='normal')
-        self.buttons[1].config(state='disabled')
-        self.labels[3].grid_remove()
-        self.labels[4].grid_remove()
+        # Desabilitar e esconder elementos após cancelar
+        self.widgets["entries"]["Host"].config(state='normal')
+        self.widgets["entries"]["Porta"].config(state='normal')
+        self.widgets["buttons"]["Conectar"].config(state='normal')
+        self.widgets["buttons"]["Cancelar"].config(state='disabled')
+        self.widgets["labels"]["GIF"].grid_remove()
+        self.widgets["labels"]["Conectando"].grid_remove()
         self.parada_thread = True
         self.thread_animacao.join()
 
+    # Métodos para animação e processamento de dados
 
-    def descobri_local_ip(self):
-        try:
-            # Obtém o nome do host local
-            host_name = socket.gethostname()
-            
-            # Obtém o endereço IP associado ao nome do host local
-            local_ip = socket.gethostbyname(host_name)
-            
-            return local_ip
-
-        except socket.error as e:
-            print(f"Não foi possível obter o endereço IP: {e}")
-            return None
-
-    def atualizar_gif(self,ind):
+    def atualizar_gif(self, ind):
+        # Função para atualizar o GIF animado
         if self.parada_thread == True:
             return 0
         frame = self.frames[ind]
         ind += 1
         if ind == self.frameCnt:
             ind = 1
-        self.labels[3].configure(image=frame)
-        app.after(100, self.atualizar_gif, ind)
+        self.widgets["labels"]["GIF"].configure(image=frame)
+        self.frameInicial.after(100, self.atualizar_gif, ind)
 
     def executarGif(self):
-        self.labels[3].grid(row=6, column=0, padx=10, pady=10,columnspan=4)
-        self.labels[4].grid(row=7, column=0, padx=10, pady=10,columnspan=4)
+        # Iniciar a animação do GIF
+        self.widgets["labels"]["GIF"].grid(row=6, column=0, padx=10, pady=10, columnspan=4)
+        self.widgets["labels"]["Conectando"].grid(row=7, column=0, padx=10, pady=10, columnspan=4)
         
         self.parada_thread = False
         self.thread_animacao = threading.Thread(target=self.atualizar_gif, args=(0,))
         self.thread_animacao.start()
 
     def exibir_caixa_mensagem_inicial(self):
-        # Obter os textos digitados nas caixas de texto
-        if not self.host_porta:
-            self.host_porta.append([self.entries[0].get(),self.entries[1].get()])
-        else:
-            self.host_porta[0] = [self.entries[0].get(),self.entries[1].get()]
+        # Obter os valores das caixas de entrada
+        self.host_porta = {
+            "Host": self.widgets["entries"]["Host"].get(),
+            "Porta": self.widgets["entries"]["Porta"].get()
+        }
 
-        # Verificar se há mensagem digitada
-        if self.host_porta[0][0] and self.host_porta[0][1]:
-            self.buttons[1].config(state='normal')#Habilitar o botão Cancelar
+        if self.host_porta["Host"] and self.host_porta["Porta"]:
+            self.widgets["buttons"]["Cancelar"].config(state='normal')
 
-            # Exibir a caixa de mensagem com o conteúdo das caixas de texto
-            messagebox.showinfo("Caixa de Mensagem", f"{self.mensagens[0]} {self.host_porta[0][0]}\n{self.mensagens[1]} {self.host_porta[0][1]}")
-            self.entries[0].config(state='disabled')
-            self.entries[1].config(state='disabled')
-            self.buttons[0].config(state='disabled')
+            mensagem = f" {self.mensagens['Host']} {self.host_porta['Host']} \n {self.mensagens['Porta']} {self.host_porta['Porta']} "
+            messagebox.showinfo("Caixa de Mensagem", mensagem)
+            self.widgets["entries"]["Host"].config(state='disabled')
+            self.widgets["entries"]["Porta"].config(state='disabled')
+            self.widgets["buttons"]["Conectar"].config(state='disabled')
             self.executarGif()
         else:
-            # Exibir um aviso se não houver mensagem digitada
             messagebox.showwarning("Caixa de Mensagem", "Por favor, digite um Host e uma Porta")
 
     def porta_disponivel(self, porta):
+        # Verificar se a porta está disponível
         try:
             socket_temporario = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             socket_temporario.bind(("localhost", porta))
@@ -141,14 +143,24 @@ class MeuAplicativo(tk.Tk):
             return False
 
     def encontrar_portas_disponiveis(self, porta_inicial, porta_final):
+        # Encontrar uma porta disponível dentro do intervalo especificado
         for porta in range(porta_inicial, porta_final + 1):
             if self.porta_disponivel(porta):
                 porta_disponivel = porta
                 break
         return porta_disponivel
 
+    def descobri_local_ip(self):
+        # Obter o endereço IP local
+        try:
+            host_name = socket.gethostname()
+            local_ip = socket.gethostbyname(host_name)
+            return local_ip
+        except socket.error as e:
+            print(f"Não foi possível obter o endereço IP: {e}")
+            return None
+
 if __name__ == "__main__":
-    
+    # Iniciar o aplicativo
     app = MeuAplicativo()
     app.mainloop()
-
