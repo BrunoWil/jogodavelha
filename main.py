@@ -3,6 +3,8 @@ from tkinter import messagebox
 import threading
 import socket
 from tkinter import StringVar
+from chatClienteServidor import ChatServidorCliente # Importar a classe ChatServidorCliente do arquivo chatClienteServidor.py
+from tkinter import scrolledtext, END
 
 class MeuAplicativo(tk.Tk):
     def __init__(self):
@@ -27,19 +29,24 @@ class MeuAplicativo(tk.Tk):
         
         # Dicionário para armazenar valores de host e porta
         self.host_porta = {"Porta", "Host"}
+        self.criar_chat()
+        
+
 
     def criar_widgets(self):
         # Definir mensagens padrão
-        self.mensagens = {
+        self.descricoes = {
             "Host": "Host:",
             "Porta": "Porta:",
             "Conectando": "Conectando"
         }
 
         # Obter informações de host local e porta local
-        self.hostLocal = f"Host Local: {self.descobri_local_ip()}"
-        self.portaLocal = f"Porta Local: {self.encontrar_portas_disponiveis(1058, 47808)}"
-
+        self.hostLocalMensagem = f"Host Local: {self.descobri_local_ip()}"
+        self.portaLocalMensagem = f"Porta Local: {self.encontrar_portas_disponiveis(1058, 47808)}"
+        self.hostLocal = self.descobri_local_ip()
+        self.portaLocal = self.encontrar_portas_disponiveis(1058, 47808)
+        
         # Criar dicionário para armazenar widgets
         self.widgets = {
             "labels": {},
@@ -56,12 +63,12 @@ class MeuAplicativo(tk.Tk):
 
     def frame_caixa_inicial(self):
         # Criar e posicionar widgets usando o método grid
-        self.widgets["labels"]["Host"] = tk.Label(self.frameInicial, text=self.mensagens["Host"])
-        self.widgets["labels"]["Porta"] = tk.Label(self.frameInicial, text=self.mensagens["Porta"])
-        self.widgets["labels"]["HostLocal"] = tk.Label(self.frameInicial, text=self.hostLocal)
+        self.widgets["labels"]["Host"] = tk.Label(self.frameInicial, text=self.descricoes["Host"])
+        self.widgets["labels"]["Porta"] = tk.Label(self.frameInicial, text=self.descricoes["Porta"])
+        self.widgets["labels"]["HostLocal"] = tk.Label(self.frameInicial, text=self.hostLocalMensagem)
         self.widgets["labels"]["GIF"] = tk.Label(self.frameInicial, image=self.frames[0])
-        self.widgets["labels"]["Conectando"] = tk.Label(self.frameInicial, text=self.mensagens["Conectando"])
-        self.widgets["labels"]["PortaLocal"] = tk.Label(self.frameInicial, text=self.portaLocal)
+        self.widgets["labels"]["Conectando"] = tk.Label(self.frameInicial, text=self.descricoes["Conectando"])
+        self.widgets["labels"]["PortaLocal"] = tk.Label(self.frameInicial, text=self.portaLocalMensagem)
 
         self.widgets["entries"]["Host"] = tk.Entry(self.frameInicial)
         self.widgets["entries"]["Porta"] = tk.Entry(self.frameInicial)
@@ -90,6 +97,7 @@ class MeuAplicativo(tk.Tk):
         self.widgets["labels"]["Conectando"].grid_remove()
         self.parada_thread = True
         self.thread_animacao.join()
+        self.chatClienteSevidor.desligar()
 
     # Métodos para animação e processamento de dados
 
@@ -123,12 +131,14 @@ class MeuAplicativo(tk.Tk):
         if self.host_porta["Host"] and self.host_porta["Porta"]:
             self.widgets["buttons"]["Cancelar"].config(state='normal')
 
-            mensagem = f" {self.mensagens['Host']} {self.host_porta['Host']} \n {self.mensagens['Porta']} {self.host_porta['Porta']} "
-            messagebox.showinfo("Caixa de Mensagem", mensagem)
+            mensagembox = f" {self.descricoes['Host']} {self.host_porta['Host']} \n {self.descricoes['Porta']} {self.host_porta['Porta']} "
+            messagebox.showinfo("Caixa de Mensagem", mensagembox)
             self.widgets["entries"]["Host"].config(state='disabled')
             self.widgets["entries"]["Porta"].config(state='disabled')
             self.widgets["buttons"]["Conectar"].config(state='disabled')
             self.executarGif()
+            self.conexaoDeUsuario()
+
         else:
             messagebox.showwarning("Caixa de Mensagem", "Por favor, digite um Host e uma Porta")
 
@@ -159,6 +169,88 @@ class MeuAplicativo(tk.Tk):
         except socket.error as e:
             print(f"Não foi possível obter o endereço IP: {e}")
             return None
+
+
+
+
+
+    def criar_chat(self):
+        self.frame_chat = tk.Frame(self)
+        self.frame_chat.grid(row=5, column=5, sticky='nsew')
+
+        self.exibicao_chat = scrolledtext.ScrolledText(self.frame_chat, state='disabled')
+        self.exibicao_chat.grid(row=0, column=0, columnspan=2, sticky='nsew')
+
+        self.caixa_entrada = tk.Entry(self.frame_chat)
+        self.caixa_entrada.grid(row=1, column=0, sticky='ew')
+
+        self.botao_enviar = tk.Button(self.frame_chat, text='Enviar', command=lambda:self.enviar_mensagem())
+        self.botao_enviar.grid(row=1, column=1, sticky='e')
+
+        self.mensagens = []
+
+    def enviar_mensagem(self,usuario="Você"):
+        mensagem = self.caixa_entrada.get()
+        self.chatClienteSevidor.set_servidor(mensagem)
+        self.mensagens.append(f"{usuario}: {mensagem}")
+        self.atualizar_exibicao_chat()
+        self.caixa_entrada.delete(0, 'end')
+
+    def receber_mensagem(self, usuario):
+        mensagem=ChatServidorCliente.get_cliente()
+        self.mensagens.append({"usuario": usuario, "mensagem": mensagem})
+        self.atualizar_exibicao_chat()
+
+    def atualizar_exibicao_chat(self):
+        self.exibicao_chat.config(state='normal')
+        self.exibicao_chat.delete('1.0', END)
+        for mensagem in self.mensagens:
+            self.exibicao_chat.insert(END, mensagem + '\n')
+        self.exibicao_chat.config(state='disabled')
+        self.exibicao_chat.see(END)
+
+
+    def conexaoDeUsuario(self): 
+        print(self.hostLocal,self.portaLocal,self.host_porta['Host'],self.host_porta['Porta'])
+        self.chatClienteSevidor = ChatServidorCliente(str(self.hostLocal), int(self.portaLocal), str(self.host_porta['Host']), int(self.host_porta['Porta']))
+        self.chatClienteSevidor.iniciar()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 if __name__ == "__main__":
     # Iniciar o aplicativo

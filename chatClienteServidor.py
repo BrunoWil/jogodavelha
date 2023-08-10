@@ -11,7 +11,27 @@ class ChatServidorCliente:
         self.clientePorta = clientePorta
         self.thread_servidor = threading.Thread(target=self.iniciar_servidor)
         self.thread_cliente = threading.Thread(target=self.iniciar_cliente)
+        self.mensagemCliente=""
+        self.mensagemServidor=""
+        self.flag=0
+    def conexaoAtiva():
+        return True
+    
+    def set_cliente(self,mensagemCliente):
+        self.mensagemCliente=mensagemCliente
 
+    
+    def set_servidor(self,mensagemServidor):
+        self.mensagemServidor=mensagemServidor
+        self.flag=1
+
+    def get_cliente(self): return self.mensagemCliente
+
+    def get_servidor(self): 
+        self.flag=0
+        return self.mensagemServidor
+
+    
     def tratar_cliente(self, socket_cliente):
         while True:
             try:
@@ -19,6 +39,7 @@ class ChatServidorCliente:
                 if not dados:
                     break
                 print(f"Cliente diz: {dados.decode('utf-8')}\n")
+                self.set_cliente(dados.decode('utf-8'))
             except Exception as e:
                 print(f"Erro na conexão: {e}")
                 break
@@ -48,8 +69,11 @@ class ChatServidorCliente:
         
                 while True:
                     try:
-                        mensagem = input("Você 1: ")
-                        cliente.sendall(mensagem.encode('utf-8'))
+                        # if input("Você 1: ") or self.get_servidor() == True:
+                        #     mensagem= input("Você 1: ") or self.get_servidor()
+                        if self.flag == True:
+                            mensagem = self.get_servidor()
+                            cliente.sendall(mensagem.encode('utf-8'))
                     except KeyboardInterrupt:
                         print("\nSaindo do chat.")
                         break
@@ -67,7 +91,9 @@ class ChatServidorCliente:
 
     def iniciar(self):
         self.thread_servidor.start()
-
+    
+    def desligar(self):
+        self.thread_servidor.join()
 if __name__ == "__main__":
     if len(sys.argv) != 5:
         print("Uso: python nome_do_arquivo.py servidorHost servidorPorta clienteHost clientePorta")
