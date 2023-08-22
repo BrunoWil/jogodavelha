@@ -1,9 +1,11 @@
+import sys
+import time
 import tkinter as tk
 from tkinter import messagebox
 import threading
 import socket
 from tkinter import StringVar
-from chatClienteServidor import ChatServidorCliente # Importar a classe ChatServidorCliente do arquivo chatClienteServidor.py
+from chatClienteServidor import ChatClienteServidor # Importar a classe ChatServidorCliente do arquivo chatClienteServidor.py
 from tkinter import scrolledtext, END
 
 class MeuAplicativo(tk.Tk):
@@ -42,10 +44,11 @@ class MeuAplicativo(tk.Tk):
         }
 
         # Obter informações de host local e porta local
+        self.porta1=1060
         self.hostLocalMensagem = f"Host Local: {self.descobri_local_ip()}"
-        self.portaLocalMensagem = f"Porta Local: {self.encontrar_portas_disponiveis(1058, 47808)}"
+        self.portaLocalMensagem = f"Porta Local: {self.encontrar_portas_disponiveis(self.porta1, 47808)}"
         self.hostLocal = self.descobri_local_ip()
-        self.portaLocal = self.encontrar_portas_disponiveis(1058, 47808)
+        self.portaLocal = self.encontrar_portas_disponiveis(self.porta1, 47808)
         
         # Criar dicionário para armazenar widgets
         self.widgets = {
@@ -64,6 +67,7 @@ class MeuAplicativo(tk.Tk):
     def frame_caixa_inicial(self):
         # Criar e posicionar widgets usando o método grid
         self.widgets["labels"]["Host"] = tk.Label(self.frameInicial, text=self.descricoes["Host"])
+        self.widgets["labels"]["Porta"] = tk.Label(self.frameInicial, text=self.descricoes["Porta"])
         self.widgets["labels"]["Porta"] = tk.Label(self.frameInicial, text=self.descricoes["Porta"])
         self.widgets["labels"]["HostLocal"] = tk.Label(self.frameInicial, text=self.hostLocalMensagem)
         self.widgets["labels"]["GIF"] = tk.Label(self.frameInicial, image=self.frames[0])
@@ -188,18 +192,24 @@ class MeuAplicativo(tk.Tk):
         self.botao_enviar.grid(row=1, column=1, sticky='e')
 
         self.mensagens = []
+        
+        self.recebimento_thread = threading.Thread(target=self.receber_mensagem, args=("Cliente",))
+        self.recebimento_thread.start()
 
     def enviar_mensagem(self,usuario="Você"):
-        mensagem = self.caixa_entrada.get()
-        self.chatClienteSevidor.set_servidor(mensagem)
-        self.mensagens.append(f"{usuario}: {mensagem}")
+        mensagemEnvio = self.caixa_entrada.get()
+        self.chatClienteSevidor.set_servidor(mensagemEnvio)
+        self.mensagens.append(f"{usuario}: {mensagemEnvio}")
         self.atualizar_exibicao_chat()
         self.caixa_entrada.delete(0, 'end')
 
     def receber_mensagem(self, usuario):
-        mensagem=ChatServidorCliente.get_cliente()
-        self.mensagens.append({"usuario": usuario, "mensagem": mensagem})
-        self.atualizar_exibicao_chat()
+        while True:
+            mensagemReceber = sys.stdout
+            # if str(mensagemReceber) != str("<_io.TextIOWrapper name='<stdout>' mode='w' encoding='utf-8'>") :
+            self.mensagens.append(f"{usuario}: {mensagemReceber}")
+            self.atualizar_exibicao_chat()
+            time.sleep(1)
 
     def atualizar_exibicao_chat(self):
         self.exibicao_chat.config(state='normal')
@@ -212,7 +222,7 @@ class MeuAplicativo(tk.Tk):
 
     def conexaoDeUsuario(self): 
         print(self.hostLocal,self.portaLocal,self.host_porta['Host'],self.host_porta['Porta'])
-        self.chatClienteSevidor = ChatServidorCliente(str(self.hostLocal), int(self.portaLocal), str(self.host_porta['Host']), int(self.host_porta['Porta']))
+        self.chatClienteSevidor = ChatClienteServidor(str(self.host_porta['Host']), int(self.host_porta['Porta']),str(self.hostLocal), int(self.portaLocal))
         self.chatClienteSevidor.iniciar()
 
 

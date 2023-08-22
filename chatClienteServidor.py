@@ -3,7 +3,8 @@ import threading
 import time
 import sys
 
-class ChatServidorCliente:
+
+class ChatClienteServidor:
     def __init__(self, servidorHost, servidorPorta, clienteHost, clientePorta):
         self.servidorHost = servidorHost
         self.servidorPorta = servidorPorta
@@ -13,22 +14,29 @@ class ChatServidorCliente:
         self.thread_cliente = threading.Thread(target=self.iniciar_cliente)
         self.mensagemCliente=""
         self.mensagemServidor=""
-        self.flag=0
+        self.flagCliente = 0
+        self.flagServidor = 0
+
     def conexaoAtiva():
         return True
     
+    # def status_cliente(self):
+    #     return self.flagCliente
+    
     def set_cliente(self,mensagemCliente):
         self.mensagemCliente=mensagemCliente
+        self.flagCliente=1
 
+    def get_cliente(self): 
+        self.flagCliente=0
+        return self.mensagemCliente
     
     def set_servidor(self,mensagemServidor):
         self.mensagemServidor=mensagemServidor
-        self.flag=1
-
-    def get_cliente(self): return self.mensagemCliente
+        self.flagServidor=1
 
     def get_servidor(self): 
-        self.flag=0
+        self.flagServidor=0
         return self.mensagemServidor
 
     
@@ -38,13 +46,14 @@ class ChatServidorCliente:
                 dados = socket_cliente.recv(1024)
                 if not dados:
                     break
+                self.flagCliente = 1
                 print(f"Cliente diz: {dados.decode('utf-8')}\n")
                 self.set_cliente(dados.decode('utf-8'))
             except Exception as e:
                 print(f"Erro na conexão: {e}")
                 break
         socket_cliente.close()
-
+    ##Recebimento de Mensagens
     def iniciar_servidor(self):
         servidor = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         servidor.bind((self.servidorHost, self.servidorPorta))
@@ -58,7 +67,8 @@ class ChatServidorCliente:
             print(f"Conexão estabelecida com {endereco_cliente}\n")
             manipulador_cliente = threading.Thread(target=self.tratar_cliente, args=(socket_cliente,))
             manipulador_cliente.start()
-
+    
+    ##Envio de mensagens
     def iniciar_cliente(self):
         while True:
             try:
@@ -69,9 +79,7 @@ class ChatServidorCliente:
         
                 while True:
                     try:
-                        # if input("Você 1: ") or self.get_servidor() == True:
-                        #     mensagem= input("Você 1: ") or self.get_servidor()
-                        if self.flag == True:
+                        if self.flagServidor == True:
                             mensagem = self.get_servidor()
                             cliente.sendall(mensagem.encode('utf-8'))
                     except KeyboardInterrupt:
@@ -94,6 +102,7 @@ class ChatServidorCliente:
     
     def desligar(self):
         self.thread_servidor.join()
+
 if __name__ == "__main__":
     if len(sys.argv) != 5:
         print("Uso: python nome_do_arquivo.py servidorHost servidorPorta clienteHost clientePorta")
@@ -101,5 +110,5 @@ if __name__ == "__main__":
    
     servidorHost, servidorPorta, clienteHost, clientePorta = sys.argv[1],int(sys.argv[2]),sys.argv[3],int(sys.argv[4])
 
-    chat = ChatServidorCliente(servidorHost, servidorPorta, clienteHost, clientePorta)
+    chat = ChatClienteServidor(clienteHost, clientePorta,servidorHost, servidorPorta)
     chat.iniciar()
