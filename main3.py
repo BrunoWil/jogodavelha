@@ -235,6 +235,11 @@ class MeuAplicativoUI(tk.Tk):
 
         self.chatClienteSevidor.iniciar()
     
+
+    def iniciar_tela_jogo(self):
+        self.tela=tk.Frame(self)
+        self.jogo=Jogo(self.tela)
+    
     def estadosDeTelas(self):
         while True:
             if not self.gerenteTelas.is_set():
@@ -244,13 +249,15 @@ class MeuAplicativoUI(tk.Tk):
             try:
                 if self.chatClienteSevidor.flagThreadServidor.is_set():
                     self.frameInicial.grid_forget()
-                self.frame_chat.grid(row=0, column=0, sticky='nsew')
+                self.iniciar_tela_jogo()
+                self.frame_chat.grid(row=0, column=1, sticky='nsew')
+                self.tela.grid(row=0, column=0, sticky='nsew')
             except:
                 pass
 
 
     def criar_chat(self):
-        self.frame_chat = tk.Frame(self)
+        self.frame_chat = tk.Frame(self,)
         
         self.exibicao_chat = scrolledtext.ScrolledText(
             self.frame_chat, state='disabled',width= 10,height= 30)
@@ -318,7 +325,15 @@ class MeuAplicativoUI(tk.Tk):
 ####################################################################################################################################################################################
 ####################################################################################################################################################################################
 class Jogo:
-     def __init__():
+     def __init__(self,tela):
+         self.tela = tela
+
+         camada1=tk.Frame(self.tela,width=10,height=10,background="white")
+         camada2=tk.Frame(self.tela,width=10,height=10,background="yellow")
+         camada3=tk.Frame(self.tela,width=10,height=10,background="green")
+         camada1.grid(row=0, column=0)
+         camada2.grid(row=0, column=1)
+         camada3.grid(row=0, column=2)
          None
     
 
@@ -426,6 +441,7 @@ class ChatClienteServidor:
         self.thread_servidor.start()
         thread_cliente = threading.Thread(target=self.iniciar_cliente,)
         thread_cliente.start()
+        self.flagThreadCliente.set()
 
 
     def fecharConexao(self):
