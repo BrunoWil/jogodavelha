@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import * 
+from PIL import Image, ImageTk
 
 class MeuAplicativoUI(tk.Tk):
     def __init__(self):
@@ -17,16 +17,14 @@ class MeuAplicativoUI(tk.Tk):
 class Jogo:
     def __init__(self, tela):
         self.tela = tela
+        self.imagem_botao = Image.open("X.png")
+        self.imagem_botao = self.imagem_botao.resize((50, 50))
         
+        self.imagens_botoes = []  # Lista para armazenar as imagens individuais dos botões
+
         self.criar_camada("white", 0, "Camada 1")
         self.criar_camada("yellow", 1, "Camada 2")
         self.criar_camada("green", 2, "Camada 3")
-        self.imagens = []
-          # Armazenar os botões de cada camada
-        self.botao_cancelar = None
-        self.botao_cancelar = tk.Button(self.tela, text="Cancelar Mudanças", command=self.cancelar_mudancas, state="disabled")
-
-
 
     def criar_camada(self, cor, coluna, nome_camada):
         camada = tk.Frame(self.tela, width=100, height=150, background=cor)
@@ -38,26 +36,19 @@ class Jogo:
 
     def botao_clicado(self, botao, imagem):
         botao.config(image=imagem)
-        botao.image = imagem
-        self.botao_cancelar.config(state="normal")  # Habilitar o botão "Cancelar"
-        
-    def cancelar_mudancas(self):
-        for botao in self.botoes_camadas:
-            botao.config(image=None, text="Botão")
-        self.botao_cancelar.config(state="disabled")  # Desabilitar o botão "Cancelar"
-        
-    def criar_botao_cancelar(self):
-
-        self.botao_cancelar.grid(row=2, columnspan=3, pady=10)
+        botao.grid(ipadx=20,ipady=20,padx=2, pady=2)
         
     def criar_matriz_botoes(self, parent):
-        self.botoes_camadas = []
         for i in range(3):
             for j in range(3):
-                botao = tk.Button(parent, text=f"Botão {i+1}-{j+1}", width=10, height=5)
-                botao.grid(row=i, column=j, sticky="nsew", padx=2, pady=2)
-                botao.config(command=lambda b=botao: self.botao_clicado(b, PhotoImage(file="X.png")))
-                self.botoes_camadas.append(botao)
+                botao = tk.Button(parent, text=f"Botão {i+1}-{j+1}")
+                botao.grid(row=i, column=j, padx=2, pady=2, ipadx=20,ipady=20)
+                
+                # Crie uma nova instância da imagem para cada botão
+                photo = ImageTk.PhotoImage(self.imagem_botao)
+                self.imagens_botoes.append(photo)
+
+                botao.config(command=lambda b=botao, p=photo: self.botao_clicado(b, p))
 
 def main():
     app = MeuAplicativoUI()
