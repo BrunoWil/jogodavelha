@@ -1,3 +1,4 @@
+import random
 import sys
 import time
 import tkinter as tk
@@ -7,13 +8,16 @@ import socket
 from tkinter import scrolledtext, END
 import json
 
+from tela import Jogo
+
 
 class MeuAplicativoUI(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("Meu Aplicativo")
-        self.portaht=1059
+        self.portaht=1058
         # Definir o tamanho da tela (largura x altura)
+        self.geometry("220x280")
         self.geometry("220x280")
 
         # Criar widgets
@@ -33,7 +37,8 @@ class MeuAplicativoUI(tk.Tk):
         self.estutura_mensagems={
         "Jogada":{},
         "Mensagem":{},
-        "Estado_Vencedor":{}
+        "Estado_Vencedor":{},
+        # "Quem_inicia": random.randint(0,255)
         }
         self.gerenteTelas=threading.Event()
         thread_estados = threading.Thread(target=self.estadosDeTelas)
@@ -53,9 +58,9 @@ class MeuAplicativoUI(tk.Tk):
         # Obter informações de host local e porta local
 
         self.hostLocalMensagem = f"Host Local: {self.descobri_local_ip()}"
-        self.portaLocalMensagem = f"Porta Local: {self.encontrar_portas_disponiveis(self.portaht, 47808)}"
+        self.portaLocal = self.encontrar_portas_disponiveis(self.portaht, 1158)
+        self.portaLocalMensagem = f"Porta Local: {self.portaLocal}"
         self.hostLocal = self.descobri_local_ip()
-        self.portaLocal = self.encontrar_portas_disponiveis(self.portaht, 47808)
 
         # Criar dicionário para armazenar widgets
         self.widgets = {
@@ -192,10 +197,12 @@ class MeuAplicativoUI(tk.Tk):
 
     def encontrar_portas_disponiveis(self, porta_inicial, porta_final):
         # Encontrar uma porta disponível dentro do intervalo especificado
+        listaportas=[]
         for porta in range(porta_inicial, porta_final + 1):
+
             if self.porta_disponivel(porta):
-                porta_disponivel = porta
-                break
+                listaportas.append(porta)
+        porta_disponivel=random.choice(listaportas)
         return porta_disponivel
 
     def descobri_local_ip(self):
@@ -210,6 +217,7 @@ class MeuAplicativoUI(tk.Tk):
 
     def desligar(self):
         try:
+            self.jogo.jogador_venceu()
             self.chatClienteSevidor.fecharConexao()
             self.chatClienteSevidor.flagThreadServidor.clear()
             self.chatClienteSevidor.flagThreadInicial.clear()
@@ -237,9 +245,18 @@ class MeuAplicativoUI(tk.Tk):
     
 
     def iniciar_tela_jogo(self):
-        self.tela=tk.Frame(self)
-        self.jogo=Jogo(self.tela)
-    
+        self.tela = tk.Frame(self)
+        self.tela.grid(row=0, column=0)
+        self.jogo = Jogo(self.tela,self.chatClienteSevidor,self.estutura_mensagems)
+
+        self.botao_reiniciar = tk.Button(self, text="Reiniciar", font="20", command=self.reiniciar_jogo)
+        self.botao_reiniciar.grid(row=1, column=0, columnspan=3, ipadx=20, ipady=20)
+
+
+    def reiniciar_jogo(self):
+        self.estutura_mensagems["Estado_Vencedor"]={}
+        self.jogo.reiniciar()
+
     def estadosDeTelas(self):
         while True:
             if not self.gerenteTelas.is_set():
@@ -252,6 +269,7 @@ class MeuAplicativoUI(tk.Tk):
                 self.iniciar_tela_jogo()
                 self.frame_chat.grid(row=0, column=1, sticky='nsew')
                 self.tela.grid(row=0, column=0, sticky='nsew')
+                break
             except:
                 pass
 
@@ -292,7 +310,6 @@ class MeuAplicativoUI(tk.Tk):
             if self.chatClienteSevidor.flagThreadServidor.is_set():
                 break
             while True:
-                time.sleep(1)
                 self.atualizar_exibicao_chat()
                 try:
                     if self.chatClienteSevidor.flagThreadServidor.is_set():
@@ -303,8 +320,14 @@ class MeuAplicativoUI(tk.Tk):
                         print(dados)
                         mensagem_dicionario=json.loads(dados)
                         mensagem_dicionario_valor=mensagem_dicionario["Mensagem"]
-                        self.mensagens.append(f"Oponente: {mensagem_dicionario_valor}")
-                        self.atualizar_exibicao_chat()
+                        if mensagem_dicionario["Mensagem"]:
+                            self.mensagens.append(f"Oponente: {mensagem_dicionario_valor}")
+                            self.atualizar_exibicao_chat()
+                        if mensagem_dicionario["Jogada"]:
+                            self.jogo.atualizar_imagem_botao(mensagem_dicionario["Jogada"], "O")
+
+                        if mensagem_dicionario["Estado_Vencedor"]:
+                            self.jogo.jogador_venceu()
                 except Exception as e:
                     print(f"Erro na conexão: {e}")
                     break
@@ -324,17 +347,17 @@ class MeuAplicativoUI(tk.Tk):
 
 ####################################################################################################################################################################################
 ####################################################################################################################################################################################
-class Jogo:
-     def __init__(self,tela):
-         self.tela = tela
+# class Jogo:
+#      def __init__(self,tela):
+#          self.tela = tela
 
-         camada1=tk.Frame(self.tela,width=10,height=10,background="white")
-         camada2=tk.Frame(self.tela,width=10,height=10,background="yellow")
-         camada3=tk.Frame(self.tela,width=10,height=10,background="green")
-         camada1.grid(row=0, column=0)
-         camada2.grid(row=0, column=1)
-         camada3.grid(row=0, column=2)
-         None
+#          camada1=tk.Frame(self.tela,width=10,height=10,background="white")
+#          camada2=tk.Frame(self.tela,width=10,height=10,background="yellow")
+#          camada3=tk.Frame(self.tela,width=10,height=10,background="green")
+#          camada1.grid(row=0, column=0)
+#          camada2.grid(row=0, column=1)
+#          camada3.grid(row=0, column=2)
+#          None
     
 
 
