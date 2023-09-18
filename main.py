@@ -1,40 +1,55 @@
+import random
 import sys
 import time
 import tkinter as tk
 from tkinter import messagebox
 import threading
 import socket
-from tkinter import StringVar
-from chatClienteServidor import ChatClienteServidor # Importar a classe ChatServidorCliente do arquivo chatClienteServidor.py
 from tkinter import scrolledtext, END
+import json
+from ChatClienteServidor import ChatClienteServidor
+from tela import Jogo
 
-class MeuAplicativo(tk.Tk):
+
+class MeuAplicativoUI(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("Meu Aplicativo")
-        
+        self.portaht=36000
         # Definir o tamanho da tela (largura x altura)
         self.geometry("220x280")
+        self.geometry("500x500")
 
         # Criar widgets
 
         # Criar um frame para os widgets iniciais
         self.frameInicial = tk.Frame(self, borderwidth=2, relief="groove")
         self.frameInicial.grid(row=0, column=0, padx=10, pady=10)
-
+        self.estrutura_de_mensagem()
         # Chamar os métodos para criar e posicionar os widgets
         self.criar_widgets()
         self.grid_caixa_inicial()
 
-        # Lista para armazenar os textos digitados nas caixas de texto
-        self.texto = []
-        
         # Dicionário para armazenar valores de host e porta
         self.host_porta = {"Porta", "Host"}
-        self.criar_chat()
-        
+        self.mensagemServidor = ""
+        self.protocol("WM_DELETE_WINDOW", self.desligar)
+
+        self.gerenteTelas=threading.Event()
+        thread_estados = threading.Thread(target=self.estadosDeTelas)
+        self.gerenteTelas.set()
+        thread_estados.start()
+        self.flag_receber_mensagem=threading.Event()
+        self.flag_receber_mensagem.set()
 
 
+    def estrutura_de_mensagem(self):
+        self.estutura_mensagems={
+        "Jogada":{},
+        "Mensagem":{},
+        "Estado_Vencedor":{},
+        "Reinicio": {}
+        }
     def criar_widgets(self):
         # Definir mensagens padrão
         self.descricoes = {
@@ -44,12 +59,12 @@ class MeuAplicativo(tk.Tk):
         }
 
         # Obter informações de host local e porta local
-        self.porta1=1060
+
         self.hostLocalMensagem = f"Host Local: {self.descobri_local_ip()}"
-        self.portaLocalMensagem = f"Porta Local: {self.encontrar_portas_disponiveis(self.porta1, 47808)}"
+        self.portaLocal = self.encontrar_portas_disponiveis(self.portaht, 47000)
+        self.portaLocalMensagem = f"Porta Local: {self.portaLocal}"
         self.hostLocal = self.descobri_local_ip()
-        self.portaLocal = self.encontrar_portas_disponiveis(self.porta1, 47808)
-        
+
         # Criar dicionário para armazenar widgets
         self.widgets = {
             "labels": {},
@@ -59,36 +74,52 @@ class MeuAplicativo(tk.Tk):
 
         # Carregar frames para animação
         self.frameCnt = 12
-        self.frames = [tk.PhotoImage(file='carregando.gif', format='gif -index %i' % i).subsample(50, 50) for i in range(self.frameCnt)]
+        self.frames = [tk.PhotoImage(file='carregando.gif', format='gif -index %i' %
+                                     i).subsample(50, 50) for i in range(self.frameCnt)]
 
         # Criar rótulos, caixas de texto e botão
         self.frame_caixa_inicial()
 
     def frame_caixa_inicial(self):
         # Criar e posicionar widgets usando o método grid
-        self.widgets["labels"]["Host"] = tk.Label(self.frameInicial, text=self.descricoes["Host"])
-        self.widgets["labels"]["Porta"] = tk.Label(self.frameInicial, text=self.descricoes["Porta"])
-        self.widgets["labels"]["Porta"] = tk.Label(self.frameInicial, text=self.descricoes["Porta"])
-        self.widgets["labels"]["HostLocal"] = tk.Label(self.frameInicial, text=self.hostLocalMensagem)
-        self.widgets["labels"]["GIF"] = tk.Label(self.frameInicial, image=self.frames[0])
-        self.widgets["labels"]["Conectando"] = tk.Label(self.frameInicial, text=self.descricoes["Conectando"])
-        self.widgets["labels"]["PortaLocal"] = tk.Label(self.frameInicial, text=self.portaLocalMensagem)
+        self.widgets["labels"]["Host"] = tk.Label(
+            self.frameInicial, text=self.descricoes["Host"])
+        self.widgets["labels"]["Porta"] = tk.Label(
+            self.frameInicial, text=self.descricoes["Porta"])
+        self.widgets["labels"]["Porta"] = tk.Label(
+            self.frameInicial, text=self.descricoes["Porta"])
+        self.widgets["labels"]["HostLocal"] = tk.Label(
+            self.frameInicial, text=self.hostLocalMensagem)
+        self.widgets["labels"]["GIF"] = tk.Label(
+            self.frameInicial, image=self.frames[0])
+        self.widgets["labels"]["Conectando"] = tk.Label(
+            self.frameInicial, text=self.descricoes["Conectando"])
+        self.widgets["labels"]["PortaLocal"] = tk.Label(
+            self.frameInicial, text=self.portaLocalMensagem)
 
         self.widgets["entries"]["Host"] = tk.Entry(self.frameInicial)
         self.widgets["entries"]["Porta"] = tk.Entry(self.frameInicial)
-        self.widgets["buttons"]["Conectar"] = tk.Button(self.frameInicial, text="Conectar", command=self.exibir_caixa_mensagem_inicial)
-        self.widgets["buttons"]["Cancelar"] = tk.Button(self.frameInicial, text="Cancelar", command=self.botao_cancelar_inicial)
+        self.widgets["buttons"]["Conectar"] = tk.Button(
+            self.frameInicial, text="Conectar", command=self.exibir_caixa_mensagem_inicial)
+        self.widgets["buttons"]["Cancelar"] = tk.Button(
+            self.frameInicial, text="Cancelar", command=self.botao_cancelar_inicial)
 
     def grid_caixa_inicial(self):
         # Posicionar widgets usando o método grid
         self.widgets["labels"]["Host"].grid(row=2, column=0, padx=5, pady=5)
         self.widgets["labels"]["Porta"].grid(row=3, column=0, padx=5, pady=5)
-        self.widgets["labels"]["HostLocal"].grid(row=0, column=0, columnspan=3, padx=0, pady=5)
-        self.widgets["labels"]["PortaLocal"].grid(row=1, column=0, columnspan=3, padx=0, pady=5)
-        self.widgets["entries"]["Host"].grid(row=2, column=1, padx=5, pady=5, columnspan=2)
-        self.widgets["entries"]["Porta"].grid(row=3, column=1, padx=5, pady=5, columnspan=2)
-        self.widgets["buttons"]["Conectar"].grid(row=5, column=1, padx=5, pady=5)
-        self.widgets["buttons"]["Cancelar"].grid(row=5, column=2, padx=5, pady=5)
+        self.widgets["labels"]["HostLocal"].grid(
+            row=0, column=0, columnspan=3, padx=0, pady=5)
+        self.widgets["labels"]["PortaLocal"].grid(
+            row=1, column=0, columnspan=3, padx=0, pady=5)
+        self.widgets["entries"]["Host"].grid(
+            row=2, column=1, padx=5, pady=5, columnspan=2)
+        self.widgets["entries"]["Porta"].grid(
+            row=3, column=1, padx=5, pady=5, columnspan=2)
+        self.widgets["buttons"]["Conectar"].grid(
+            row=5, column=1, padx=5, pady=5)
+        self.widgets["buttons"]["Cancelar"].grid(
+            row=5, column=2, padx=5, pady=5)
         self.widgets["buttons"]["Cancelar"].config(state='disabled')
 
     def botao_cancelar_inicial(self):
@@ -101,7 +132,13 @@ class MeuAplicativo(tk.Tk):
         self.widgets["labels"]["Conectando"].grid_remove()
         self.parada_thread = True
         self.thread_animacao.join()
-        self.chatClienteSevidor.desligar()
+        self.chatClienteSevidor.fecharConexao()
+        try:
+            self.chatClienteSevidor.flagThreadInicial.clear()
+            self.chatClienteSevidor.flagThreadCliente.clear()
+            self.chatClienteSevidor.flagThreadServidor.clear()
+        except:
+            pass
 
     # Métodos para animação e processamento de dados
 
@@ -118,11 +155,14 @@ class MeuAplicativo(tk.Tk):
 
     def executarGif(self):
         # Iniciar a animação do GIF
-        self.widgets["labels"]["GIF"].grid(row=6, column=0, padx=10, pady=10, columnspan=4)
-        self.widgets["labels"]["Conectando"].grid(row=7, column=0, padx=10, pady=10, columnspan=4)
-        
+        self.widgets["labels"]["GIF"].grid(
+            row=6, column=0, padx=10, pady=10, columnspan=4)
+        self.widgets["labels"]["Conectando"].grid(
+            row=7, column=0, padx=10, pady=10, columnspan=4)
+
         self.parada_thread = False
-        self.thread_animacao = threading.Thread(target=self.atualizar_gif, args=(0,))
+        self.thread_animacao = threading.Thread(
+            target=self.atualizar_gif, args=(0,))
         self.thread_animacao.start()
 
     def exibir_caixa_mensagem_inicial(self):
@@ -144,12 +184,14 @@ class MeuAplicativo(tk.Tk):
             self.conexaoDeUsuario()
 
         else:
-            messagebox.showwarning("Caixa de Mensagem", "Por favor, digite um Host e uma Porta")
+            messagebox.showwarning("Caixa de Mensagem",
+                                   "Por favor, digite um Host e uma Porta")
 
     def porta_disponivel(self, porta):
         # Verificar se a porta está disponível
         try:
-            socket_temporario = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            socket_temporario = socket.socket(
+                socket.AF_INET, socket.SOCK_STREAM)
             socket_temporario.bind(("localhost", porta))
             socket_temporario.close()
             return True
@@ -158,10 +200,12 @@ class MeuAplicativo(tk.Tk):
 
     def encontrar_portas_disponiveis(self, porta_inicial, porta_final):
         # Encontrar uma porta disponível dentro do intervalo especificado
+        listaportas=[]
         for porta in range(porta_inicial, porta_final + 1):
+
             if self.porta_disponivel(porta):
-                porta_disponivel = porta
-                break
+                listaportas.append(porta)
+        porta_disponivel=random.choice(listaportas)
         return porta_disponivel
 
     def descobri_local_ip(self):
@@ -174,95 +218,161 @@ class MeuAplicativo(tk.Tk):
             print(f"Não foi possível obter o endereço IP: {e}")
             return None
 
+    def desligar(self):
+        try:
+            self.flag_receber_mensagem.clear()
+            self.jogo.jogador_desistiu()
+            self.chatClienteSevidor.fecharConexao()
+            self.chatClienteSevidor.flagThreadServidor.clear()
+            self.chatClienteSevidor.flagThreadInicial.clear()
+            self.chatClienteSevidor.flagThreadCliente.clear()
+            # self.chatClienteSevidor.servidor.close()
+        except:
+            pass
+
+        self.gerenteTelas.clear()
+        self.destroy()
+
+    def conexaoDeUsuario(self):
+        print(self.hostLocal, self.portaLocal,
+              self.host_porta['Host'], self.host_porta['Porta'])
+        self.criar_chat()
+
+        self.chatClienteSevidor = ChatClienteServidor(str(self.host_porta['Host']), int(
+            self.host_porta['Porta']), str(self.hostLocal), int(self.portaLocal))
+        
+        self.thred_receber_mensagem = threading.Thread(
+            target=self.receber_mensagem)
+        self.thred_receber_mensagem.start()
+
+        self.chatClienteSevidor.iniciar()
+    
+
+    def iniciar_tela_jogo(self):
+        self.tela = tk.Frame(self)
+        self.tela.grid(row=0, column=0)
+        self.jogo = Jogo(self.tela,self.chatClienteSevidor,self.estutura_mensagems)
 
 
+        self.botao_reiniciar = tk.Button(self, text="Reiniciar", font="20", command=self.reiniciar_jogo)
+        self.botao_reiniciar.grid(row=1, column=0, columnspan=3, ipadx=20, ipady=20)
+
+
+    def reiniciar_jogo(self):
+        self.estrutura_de_mensagem()
+        self.jogo.enviar_jogada(True,"Reinicio")
+        self.estrutura_de_mensagem()
+        self.jogo.reiniciar()
+        self.tela.grid(row=0, column=0, sticky='nsew')
+
+
+    def estadosDeTelas(self):
+        while True:
+            if not self.gerenteTelas.is_set():
+                break
+
+            time.sleep(1)
+            try:
+                if self.chatClienteSevidor.flagThreadServidor.is_set():
+                    self.frameInicial.grid_forget()
+                self.iniciar_tela_jogo()
+                self.frame_chat.grid(row=0, column=1, sticky='nsew')
+                self.tela.grid(row=0, column=0, sticky='nsew')
+                break
+            except:
+                pass
 
 
     def criar_chat(self):
-        self.frame_chat = tk.Frame(self)
-        self.frame_chat.grid(row=5, column=5, sticky='nsew')
-
-        self.exibicao_chat = scrolledtext.ScrolledText(self.frame_chat, state='disabled')
-        self.exibicao_chat.grid(row=0, column=0, columnspan=2, sticky='nsew')
+        self.frame_chat = tk.Frame(self,)
+        
+        self.exibicao_chat = scrolledtext.ScrolledText(
+            self.frame_chat, state='disabled',width= 10,height= 30)
+        self.exibicao_chat.grid(row=0, column=0, columnspan=3, sticky='nsew')
 
         self.caixa_entrada = tk.Entry(self.frame_chat)
         self.caixa_entrada.grid(row=1, column=0, sticky='ew')
 
-        self.botao_enviar = tk.Button(self.frame_chat, text='Enviar', command=lambda:self.enviar_mensagem())
+        self.botao_enviar = tk.Button(
+            self.frame_chat, text='Enviar', command=lambda: self.enviar_mensagem())
         self.botao_enviar.grid(row=1, column=1, sticky='e')
 
         self.mensagens = []
-        
-        self.recebimento_thread = threading.Thread(target=self.receber_mensagem, args=("Cliente",))
-        self.recebimento_thread.start()
 
-    def enviar_mensagem(self,usuario="Você"):
+    def enviar_mensagem(self):
+        usuario="Você"
         mensagemEnvio = self.caixa_entrada.get()
-        self.chatClienteSevidor.set_servidor(mensagemEnvio)
+        self.estutura_mensagems["Mensagem"] = mensagemEnvio
+        mensagem_json = json.dumps(self.estutura_mensagems)
+        # mensagem_json = mensagem_json.encode('utf-8')
+
+        self.chatClienteSevidor.flagThreadCliente.set()
+        self.chatClienteSevidor.set_cliente(mensagem_json)
         self.mensagens.append(f"{usuario}: {mensagemEnvio}")
         self.atualizar_exibicao_chat()
         self.caixa_entrada.delete(0, 'end')
+        thread_cliente = threading.Thread(target=self.chatClienteSevidor.enviar_mensagens)
+        thread_cliente.start()
 
-    def receber_mensagem(self, usuario):
+    def receber_mensagem(self):
         while True:
-            mensagemReceber = sys.stdout
-            # if str(mensagemReceber) != str("<_io.TextIOWrapper name='<stdout>' mode='w' encoding='utf-8'>") :
-            self.mensagens.append(f"{usuario}: {mensagemReceber}")
-            self.atualizar_exibicao_chat()
-            time.sleep(1)
+            if not self.flag_receber_mensagem.is_set():
+                break
+            if self.chatClienteSevidor.flagThreadServidor.is_set():
+                break
+            while True:
+                self.atualizar_exibicao_chat()
+                if not self.flag_receber_mensagem.is_set():
+                    break
+                try:
+                    if self.chatClienteSevidor.flagThreadServidor.is_set():
+                        dados = self.chatClienteSevidor.socket_cliente.recv(1024)
+                        if not dados:
+                            break
+                        # dados=dados.decode('utf-8')
+                        print(dados)
+                        mensagem_dicionario=json.loads(dados)
+                        mensagem_dicionario_valor=mensagem_dicionario["Mensagem"]
+
+                        if mensagem_dicionario["Mensagem"]:
+                            self.mensagens.append(f"Oponente: {mensagem_dicionario_valor}")
+                            self.atualizar_exibicao_chat()
+
+                        if mensagem_dicionario["Jogada"]:
+                            self.jogo.atualizar_imagem_botao(mensagem_dicionario["Jogada"], "O")
+
+                        if mensagem_dicionario["Estado_Vencedor"]:
+                            self.jogo.jogador_venceu()
+
+                        if mensagem_dicionario["Reinicio"]==True:
+                            self.jogo.reiniciar()
+                            self.estrutura_de_mensagem()
+                            self.tela.grid(row=0, column=0, sticky='nsew')
+
+                except Exception as e:
+                    print(f"Erro na conexão: {e}")
+                    break
+            self.chatClienteSevidor.socket_cliente.close()
 
     def atualizar_exibicao_chat(self):
-        self.exibicao_chat.config(state='normal')
-        self.exibicao_chat.delete('1.0', END)
-        for mensagem in self.mensagens:
-            self.exibicao_chat.insert(END, mensagem + '\n')
-        self.exibicao_chat.config(state='disabled')
-        self.exibicao_chat.see(END)
-
-
-    def conexaoDeUsuario(self): 
-        print(self.hostLocal,self.portaLocal,self.host_porta['Host'],self.host_porta['Porta'])
-        self.chatClienteSevidor = ChatClienteServidor(str(self.host_porta['Host']), int(self.host_porta['Porta']),str(self.hostLocal), int(self.portaLocal))
-        self.chatClienteSevidor.iniciar()
+        try:
+            self.exibicao_chat.config(state='normal')
+            self.exibicao_chat.delete('1.0', END)
+            for mensagem in self.mensagens:
+                self.exibicao_chat.insert(END, mensagem + '\n')
+            self.exibicao_chat.config(state='disabled')
+            self.exibicao_chat.see(END)
+        except:
+            pass
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+def main():
+    app = MeuAplicativoUI()
+    app.mainloop()
+    None
 
 
 if __name__ == "__main__":
     # Iniciar o aplicativo
-    app = MeuAplicativo()
-    app.mainloop()
+    main()

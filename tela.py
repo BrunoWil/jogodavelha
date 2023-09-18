@@ -20,7 +20,9 @@ class Jogo:
     def __init__(self, tela,chatClienteSevidor,estutura_mensagems):
         self.chatClienteSevidor=chatClienteSevidor
         self.estutura_mensagems=estutura_mensagems
-        self.tela = tela
+        self.tela_I=tela
+        self.tela =tk.Frame(self.tela_I)
+        self.tela.grid(row=0,column=0)
         self.imagem_vazia = Image.new("RGBA", (50, 50), (0, 0, 0, 0))
         self.botao_desistir = tk.Button(self.tela, text="Desistir", font="20")
         self.botao_desistir.config(command=self.jogador_desistiu)
@@ -40,6 +42,9 @@ class Jogo:
         self.criar_camada("white", 0, "Camada 1")
         self.criar_camada("yellow", 1, "Camada 2")
         self.criar_camada("green", 2, "Camada 3")
+        self.venceu=tk.Label(self.tela,text="Você Ganhou",font="50")
+        self.derrota=tk.Label(self.tela,text="Você Perdeu",font="50")
+        self.desistiu_do_jogo = tk.Label(self.tela, text="Desistiu",font="30")
 
     def criar_camada(self, cor, coluna, nome_camada):
         camada = tk.Frame(self.tela, width=100, height=150, background=cor)
@@ -67,8 +72,14 @@ class Jogo:
         self.passado_para_proximo()
 
     def enviar_jogada(self,posicao,destino="Jogada"):
-        self.estutura_mensagems[destino] = posicao
-        mensagem_json = json.dumps(self.estutura_mensagems)
+        estutura_mensagems={
+        "Jogada":{},
+        "Mensagem":{},
+        "Estado_Vencedor":{},
+        "Reinicio": {}
+        }
+        estutura_mensagems[destino] = posicao
+        mensagem_json = json.dumps(estutura_mensagems)
         self.chatClienteSevidor.flagThreadCliente.set()
         self.chatClienteSevidor.set_cliente(mensagem_json)
         thread_cliente = threading.Thread(target=self.chatClienteSevidor.enviar_mensagens)
@@ -128,8 +139,8 @@ class Jogo:
 
     def jogador_desistiu(self):
         self.botao_desistir.grid_remove()
-        desistiu_do_jogo = tk.Label(self.tela, text="Desistiu",font="30")
-        desistiu_do_jogo.grid(row=3, column=0,columnspan=3, ipadx=20, ipady=20)
+
+        self.desistiu_do_jogo.grid(row=3, column=0,columnspan=3, ipadx=20, ipady=20)
         self.enviar_jogada(True,"Estado_Vencedor")
         self.jogador_derrota()
 
@@ -256,14 +267,14 @@ class Jogo:
 
 
     def jogador_venceu(self):
-        venceu=tk.Label(self.tela,text="Você Ganhou",font="50")
-        venceu.grid(row=0, column=0,columnspan=4, rowspan=4, ipadx=5, ipady=5)
+
+        self.venceu.grid(row=0, column=0,columnspan=4, rowspan=4, ipadx=5, ipady=5)
         self.passado_para_proximo()
         self.botao_desistir.grid_forget()
 
     def jogador_derrota(self):
-        derrota=tk.Label(self.tela,text="Você Perdeu",font="50")
-        derrota.grid(row=0, column=0,columnspan=4, rowspan=4, ipadx=5, ipady=5)
+
+        self.derrota.grid(row=0, column=0,columnspan=4, rowspan=4, ipadx=5, ipady=5)
         self.passado_para_proximo()
         self.botao_desistir.grid_forget()
 
@@ -275,10 +286,16 @@ class Jogo:
                     self.botoes[(c, i, j)][1]=False
                     botao.config(image=self.imagem_vazia_tk, state='normal')
                     self.matriz_de_jogo[c][i][j] = 0
+        try:
+            self.venceu.grid_remove()
+            self.derrota.grid_remove()
+            self.desistiu_do_jogo.grid_remove()
+            self.botao_desistir.grid(row=3, column=0,columnspan=3, ipadx=20, ipady=20)
+        except:
+            pass
 
-
-        self.passado_para_mim()
-        self.qualvez("Sua vez")
+        # self.passado_para_mim()
+        # self.qualvez("Sua vez")
 
 def main():
     app = MeuAplicativoUI()
